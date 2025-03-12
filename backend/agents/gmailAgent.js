@@ -29,11 +29,9 @@ Always be helpful, concise, and respectful of the user's privacy.`;
     this.loadCredentials();
   }
   
-  async start() {
-    await super.start();
-    
+  // Load credentials from credential manager
+  loadCredentials() {
     try {
-      // Try to load credentials from credential manager first
       const savedCredentials = this.credentialManager.loadCredentials(this.id);
       if (savedCredentials) {
         this.credentials = {
@@ -42,7 +40,15 @@ Always be helpful, concise, and respectful of the user's privacy.`;
         };
         console.log(`Loaded saved credentials for Gmail agent ${this.id}`);
       }
-      
+    } catch (error) {
+      console.error(`Error loading credentials for Gmail agent ${this.id}:`, error);
+    }
+  }
+  
+  async start() {
+    await super.start();
+    
+    try {
       // Check if credentials are available
       if (!this.credentials || !this.credentials.client_id || !this.credentials.client_secret) {
         console.warn('Gmail API credentials not found or incomplete. Using limited functionality.');
