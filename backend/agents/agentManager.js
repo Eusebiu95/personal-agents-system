@@ -5,14 +5,14 @@ const { BaseAgent } = require('./baseAgent');
 const { GmailAgent } = require('./gmailAgent');
 const { AirtableAgent } = require('./airtableAgent');
 const { DefaultAgent } = require('./defaultAgent');
-const { CredentialManager } = require('../credentials/credentialManager');
+const credentialManager = require('../credentials/credentialManager');
 const { OpenAI } = require('openai');
 require('dotenv').config();
 
 class AgentManager {
   constructor() {
     this.agents = {};
-    this.credentialManager = new CredentialManager();
+    this.credentialManager = credentialManager;
     this.defaultAgent = null;
     
     // Initialize OpenAI client for agent routing

@@ -2,16 +2,18 @@ const { BaseAgent } = require('./baseAgent');
 const { google } = require('googleapis');
 const { OAuth2Client } = require('google-auth-library');
 const { OpenAI } = require('openai');
-const { CredentialManager } = require('../credentials/credentialManager');
+const credentialManager = require('../credentials/credentialManager');
 require('dotenv').config();
 
 class GmailAgent extends BaseAgent {
   constructor(id, credentials = {}) {
-    super(id, 'gmail', 'Gmail Assistant');
+    super(id, 'Gmail Assistant');
+    this.type = 'gmail';
     this.credentials = credentials;
+    this.oauth2Client = null;
+    this.credentialManager = credentialManager;
     this.gmail = null;
     this.auth = null;
-    this.credentialManager = new CredentialManager();
     
     // Initialize OpenAI client for natural language processing
     this.openai = new OpenAI({
@@ -22,6 +24,9 @@ class GmailAgent extends BaseAgent {
     this.systemPrompt = `You are a Gmail assistant that can help with email management tasks.
 You can help the user read, send, and search emails.
 Always be helpful, concise, and respectful of the user's privacy.`;
+    
+    // Load saved credentials if available
+    this.loadCredentials();
   }
   
   async start() {
@@ -29,7 +34,7 @@ Always be helpful, concise, and respectful of the user's privacy.`;
     
     try {
       // Try to load credentials from credential manager first
-      const savedCredentials = this.credentialManager.getCredentials(this.id);
+      const savedCredentials = this.credentialManager.loadCredentials(this.id);
       if (savedCredentials) {
         this.credentials = {
           ...this.credentials,
