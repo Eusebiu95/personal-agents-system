@@ -23,7 +23,12 @@ class AgentManager {
     // Create agents directory if it doesn't exist
     this.agentsDir = path.join(__dirname, '../data/agents');
     if (!fs.existsSync(this.agentsDir)) {
-      fs.mkdirSync(this.agentsDir, { recursive: true });
+      try {
+        fs.mkdirSync(this.agentsDir, { recursive: true });
+        console.log('Created agents directory in AgentManager:', this.agentsDir);
+      } catch (error) {
+        console.error('Error creating agents directory in AgentManager:', error);
+      }
     }
     
     // Load any previously saved agents
@@ -244,33 +249,45 @@ Return ONLY the agent type that should handle the request. If unsure, return "de
   // Load saved agents from disk
   loadSavedAgents() {
     try {
+      if (!fs.existsSync(this.agentsDir)) {
+        console.log('Agents directory does not exist, skipping loading saved agents');
+        return;
+      }
+      
       const files = fs.readdirSync(this.agentsDir);
+      console.log(`Found ${files.length} files in agents directory`);
       
       for (const file of files) {
-        if (!file.endsWith('.json')) continue;
-        
-        const agentId = file.replace('.json', '');
-        const statePath = path.join(this.agentsDir, file);
-        const stateData = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-        
-        // Create the appropriate agent type
-        if (stateData.type === 'gmail') {
-          this.agents[agentId] = new GmailAgent(agentId);
-        } else if (stateData.type === 'airtable') {
-          this.agents[agentId] = new AirtableAgent(agentId);
-        } else if (stateData.type === 'default') {
-          this.agents[agentId] = new DefaultAgent();
-        } else {
-          console.warn(`Unknown agent type: ${stateData.type}`);
-          continue;
-        }
-        
-        // Load the agent state
-        this.agents[agentId].loadState(stateData);
-        
-        // Start the agent if it was active
-        if (stateData.active) {
-          this.agents[agentId].start();
+        try {
+          if (!file.endsWith('.json')) continue;
+          
+          const agentId = file.replace('.json', '');
+          const statePath = path.join(this.agentsDir, file);
+          const stateData = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+          
+          // Create the appropriate agent type
+          if (stateData.type === 'gmail') {
+            this.agents[agentId] = new GmailAgent(agentId);
+          } else if (stateData.type === 'airtable') {
+            this.agents[agentId] = new AirtableAgent(agentId);
+          } else if (stateData.type === 'default') {
+            this.agents[agentId] = new DefaultAgent();
+          } else {
+            console.warn(`Unknown agent type: ${stateData.type}`);
+            continue;
+          }
+          
+          // Load the agent state
+          this.agents[agentId].loadState(stateData);
+          
+          // Start the agent if it was active
+          if (stateData.active) {
+            this.agents[agentId].start();
+          }
+          
+          console.log(`Loaded agent: ${agentId} (${stateData.type})`);
+        } catch (agentError) {
+          console.error(`Error loading agent from file ${file}:`, agentError);
         }
       }
       

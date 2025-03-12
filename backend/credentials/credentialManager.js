@@ -7,7 +7,12 @@ class CredentialManager {
     
     // Ensure the credentials directory exists
     if (!fs.existsSync(this.credentialsDir)) {
-      fs.mkdirSync(this.credentialsDir, { recursive: true });
+      try {
+        fs.mkdirSync(this.credentialsDir, { recursive: true });
+        console.log('Created credentials directory in CredentialManager:', this.credentialsDir);
+      } catch (error) {
+        console.error('Error creating credentials directory in CredentialManager:', error);
+      }
     }
   }
 
@@ -18,6 +23,11 @@ class CredentialManager {
    */
   saveCredentials(agentId, credentials) {
     try {
+      if (!fs.existsSync(this.credentialsDir)) {
+        fs.mkdirSync(this.credentialsDir, { recursive: true });
+        console.log('Created credentials directory before saving:', this.credentialsDir);
+      }
+      
       const filePath = path.join(this.credentialsDir, `${agentId}.json`);
       fs.writeFileSync(filePath, JSON.stringify(credentials, null, 2));
       console.log(`Saved credentials for agent ${agentId}`);
@@ -40,6 +50,7 @@ class CredentialManager {
         const data = fs.readFileSync(filePath, 'utf8');
         return JSON.parse(data);
       }
+      console.log(`No credentials file found for agent ${agentId}`);
       return null;
     } catch (error) {
       console.error(`Error loading credentials for agent ${agentId}:`, error);

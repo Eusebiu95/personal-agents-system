@@ -33,7 +33,34 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Create data directory if it doesn't exist
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+  try {
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log('Created data directory:', dataDir);
+  } catch (error) {
+    console.error('Error creating data directory:', error);
+  }
+}
+
+// Create credentials directory if it doesn't exist
+const credentialsDir = path.join(__dirname, 'data/credentials');
+if (!fs.existsSync(credentialsDir)) {
+  try {
+    fs.mkdirSync(credentialsDir, { recursive: true });
+    console.log('Created credentials directory:', credentialsDir);
+  } catch (error) {
+    console.error('Error creating credentials directory:', error);
+  }
+}
+
+// Create agents directory if it doesn't exist
+const agentsDir = path.join(__dirname, 'data/agents');
+if (!fs.existsSync(agentsDir)) {
+  try {
+    fs.mkdirSync(agentsDir, { recursive: true });
+    console.log('Created agents directory:', agentsDir);
+  } catch (error) {
+    console.error('Error creating agents directory:', error);
+  }
 }
 
 // Socket.io connection handling
