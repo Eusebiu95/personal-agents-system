@@ -11,6 +11,11 @@ const morgan = require('morgan');
 // Load environment variables
 dotenv.config();
 
+// Check for required environment variables
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('WARNING: OPENAI_API_KEY environment variable is not set. Some functionality will be limited.');
+}
+
 // Initialize express app
 const app = express();
 const server = http.createServer(app);
@@ -198,7 +203,14 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   
   // Start the default agent
-  agentManager.createDefaultAgent();
+  try {
+    console.log('Starting default agent...');
+    agentManager.createDefaultAgent();
+    console.log('Default agent started successfully');
+  } catch (error) {
+    console.error('Error starting default agent:', error);
+    console.log('Server will continue running without the default agent');
+  }
 });
 
 // Handle graceful shutdown
