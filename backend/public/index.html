@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Agents System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e1f5fe;
+            margin-left: 20px;
+            text-align: right;
+        }
+        .agent-message {
+            background-color: #f5f5f5;
+            margin-right: 20px;
+        }
+        .system-message {
+            background-color: #fff9c4;
+            margin-right: 20px;
+            font-style: italic;
+        }
+        .input-container {
+            display: flex;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0b7dda;
+        }
+        .agent-selector {
+            margin-bottom: 20px;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Personal Agents System</h1>
+    
+    <div class="toggle-container">
+        <label class="toggle-switch">
+            <input type="checkbox" id="auto-routing-toggle" checked>
+            <span class="slider"></span>
+        </label>
+        <span>Automatic Agent Routing</span>
+    </div>
+    
+    <div class="agent-selector hidden" id="agent-selector">
+        <label for="agent-select">Select Agent:</label>
+        <select id="agent-select">
+            <option value="default">Default Assistant</option>
+            <option value="gmail">Gmail Assistant</option>
+            <option value="airtable">Airtable Assistant</option>
+        </select>
+    </div>
+    
+    <div class="chat-container" id="chat-container"></div>
+    
+    <div class="input-container">
+        <input type="text" id="message-input" placeholder="Type your message here...">
+        <button id="send-button">Send</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatContainer = document.getElementById('chat-container');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const agentSelect = document.getElementById('agent-select');
+            const autoRoutingToggle = document.getElementById('auto-routing-toggle');
+            const agentSelector = document.getElementById('agent-selector');
+            
+            // Function to add a message to the chat
+            function addMessage(message, type) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                
+                if (type === 'user') {
+                    messageElement.classList.add('user-message');
+                } else if (type === 'agent') {
+                    messageElement.classList.add('agent-message');
+                } else if (type === 'system') {
+                    messageElement.classList.add('system-message');
+                }
+                
+                messageElement.textContent = message;
+                chatContainer.appendChild(messageElement);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            // Function to send a message to the agent
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+                if (!message) return;
+                
+                // Add user message to chat
+                addMessage(message, 'user');
+                
+                // Clear input
+                messageInput.value = '';
+                
+                try {
+                    let response;
+                    let data;
+                    
+                    if (autoRoutingToggle.checked) {
+                        // Use automatic routing
+                        response = await fetch('/api/agents/message', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message })
+                        });
+                        
+                        data = await response.json();
+                        
+                        if (data.success) {
+                            // Add system message showing which agent was used
+                            addMessage(`Using ${data.agentId} agent`, 'system');
+                            
+                            // Add agent response to chat
+                            addMessage(data.response, 'agent');
+                        } else {
+                            // Add error message to chat
+                            addMessage(`Error: ${data.message}`, 'system');
+                        }
+                    } else {
+                        // Use selected agent
+                        const agentId = agentSelect.value;
+                        
+                        response = await fetch(`/api/agents/${agentId}/message`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message })
+                        });
+                        
+                        data = await response.json();
+                        
+                        if (data.success) {
+                            // Add agent response to chat
+                            addMessage(data.response, 'agent');
+                        } else {
+                            // Add error message to chat
+                            addMessage(`Error: ${data.message}`, 'system');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    addMessage('Error: Could not connect to the server.', 'system');
+                }
+            }
+            
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            
+            messageInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Toggle automatic routing
+            autoRoutingToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    agentSelector.classList.add('hidden');
+                    addMessage('Automatic agent routing enabled', 'system');
+                } else {
+                    agentSelector.classList.remove('hidden');
+                    addMessage('Manual agent selection enabled', 'system');
+                }
+            });
+            
+            // Fetch active agents
+            async function fetchActiveAgents() {
+                try {
+                    const response = await fetch('/api/agents');
+                    const data = await response.json();
+                    
+                    if (data.agents && data.agents.length > 0) {
+                        // Clear existing options
+                        agentSelect.innerHTML = '';
+                        
+                        // Add default option
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = 'default';
+                        defaultOption.textContent = 'Default Assistant';
+                        agentSelect.appendChild(defaultOption);
+                        
+                        // Add active agents
+                        data.agents.forEach(agent => {
+                            if (agent.id !== 'default') {
+                                const option = document.createElement('option');
+                                option.value = agent.id;
+                                option.textContent = agent.name;
+                                agentSelect.appendChild(option);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching active agents:', error);
+                }
+            }
+            
+            // Fetch active agents on load
+            fetchActiveAgents();
+            
+            // Add welcome message
+            addMessage('Welcome to the Personal Agents System! How can I help you today?', 'agent');
+            addMessage('Automatic agent routing is enabled. Your messages will be sent to the most appropriate agent.', 'system');
+        });
+    </script>
+</body>
+</html> 

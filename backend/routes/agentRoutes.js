@@ -1,30 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { AgentManager } = require('../agents/agentManager');
+const agentManager = require('../agents/sharedAgentManager');
 const { authenticateUser, isAdmin } = require('../middleware/auth');
-
-// Initialize agent manager
-const agentManager = new AgentManager();
 
 /**
  * @route   GET /api/agents
  * @desc    Get all agents
  * @access  Private
  */
-router.get('/', authenticateUser, (req, res) => {
+router.get('/', (req, res) => {
   try {
-    const agents = Object.values(agentManager.agents).map(agent => ({
-      id: agent.id,
-      type: agent.type,
-      name: agent.name,
-      active: agent.active,
-      lastActivity: agent.lastActivity
-    }));
-    
-    res.json({
-      success: true,
-      agents
-    });
+    const activeAgents = agentManager.getActiveAgents();
+    res.json({ success: true, agents: activeAgents });
   } catch (error) {
     console.error('Error getting agents:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -36,34 +23,8 @@ router.get('/', authenticateUser, (req, res) => {
  * @desc    Create a new agent
  * @access  Private
  */
-router.post('/', authenticateUser, async (req, res) => {
-  try {
-    const { type, options } = req.body;
-    
-    if (!type) {
-      return res.status(400).json({ success: false, message: 'Agent type is required' });
-    }
-    
-    // Generate a unique ID for the agent
-    const agentId = `${type}-${Date.now()}`;
-    
-    // Create and start the agent
-    const agent = await agentManager.createAgent(type, agentId, options);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Agent created successfully',
-      agent: {
-        id: agent.id,
-        type: agent.type,
-        name: agent.name,
-        active: agent.active
-      }
-    });
-  } catch (error) {
-    console.error('Error creating agent:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+router.post('/', authenticateUser, (req, res) => {
+  res.json({ message: 'Create agent endpoint (placeholder)' });
 });
 
 /**
@@ -72,28 +33,7 @@ router.post('/', authenticateUser, async (req, res) => {
  * @access  Private
  */
 router.get('/:agentId', authenticateUser, (req, res) => {
-  try {
-    const agentId = req.params.agentId;
-    const agent = agentManager.getAgent(agentId);
-    
-    if (!agent) {
-      return res.status(404).json({ success: false, message: 'Agent not found' });
-    }
-    
-    res.json({
-      success: true,
-      agent: {
-        id: agent.id,
-        type: agent.type,
-        name: agent.name,
-        active: agent.active,
-        lastActivity: agent.lastActivity
-      }
-    });
-  } catch (error) {
-    console.error('Error getting agent:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  res.json({ message: `Get agent ${req.params.agentId} endpoint (placeholder)` });
 });
 
 /**
@@ -101,27 +41,8 @@ router.get('/:agentId', authenticateUser, (req, res) => {
  * @desc    Delete an agent
  * @access  Private
  */
-router.delete('/:agentId', authenticateUser, async (req, res) => {
-  try {
-    const agentId = req.params.agentId;
-    
-    // Check if agent exists
-    const agent = agentManager.getAgent(agentId);
-    if (!agent) {
-      return res.status(404).json({ success: false, message: 'Agent not found' });
-    }
-    
-    // Remove the agent
-    await agentManager.removeAgent(agentId);
-    
-    res.json({
-      success: true,
-      message: 'Agent deleted successfully'
-    });
-  } catch (error) {
-    console.error('Error deleting agent:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+router.delete('/:agentId', authenticateUser, (req, res) => {
+  res.json({ message: `Delete agent ${req.params.agentId} endpoint (placeholder)` });
 });
 
 /**
@@ -139,14 +60,8 @@ router.post('/:agentId/message', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Message is required' });
     }
     
-    // Check if agent exists
-    const agent = agentManager.getAgent(agentId);
-    if (!agent) {
-      return res.status(404).json({ success: false, message: 'Agent not found' });
-    }
-    
     // Process the message
-    const response = await agent.processMessage(message);
+    const response = await agentManager.processMessage(agentId, message);
     
     res.json({
       success: true,
@@ -173,7 +88,7 @@ router.post('/:agentId/command', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Command is required' });
     }
     
-    // Check if agent exists
+    // Get the agent
     const agent = agentManager.getAgent(agentId);
     if (!agent) {
       return res.status(404).json({ success: false, message: 'Agent not found' });
@@ -181,6 +96,9 @@ router.post('/:agentId/command', authenticateUser, async (req, res) => {
     
     // Execute the command
     const result = await agent.executeCommand(command);
+    
+    // Save agent state after command execution
+    agentManager.saveAgentState(agentId);
     
     res.json({
       success: true,
@@ -198,27 +116,33 @@ router.post('/:agentId/command', authenticateUser, async (req, res) => {
  * @access  Private
  */
 router.get('/types', authenticateUser, (req, res) => {
+  res.json({ message: 'Get agent types endpoint (placeholder)' });
+});
+
+/**
+ * @route   POST /api/agents/message
+ * @desc    Send a message with automatic agent routing
+ * @access  Public (temporarily for testing)
+ */
+router.post('/message', async (req, res) => {
   try {
-    // List of available agent types
-    const agentTypes = [
-      {
-        type: 'default',
-        name: 'Default Assistant',
-        description: 'General-purpose assistant that can handle various tasks'
-      },
-      {
-        type: 'gmail',
-        name: 'Gmail Assistant',
-        description: 'Assistant that can help with email-related tasks'
-      }
-    ];
+    const { message } = req.body;
+    
+    // Check if message is provided
+    if (!message) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+    
+    // Process the message with automatic routing
+    const result = await agentManager.processMessageWithRouting(message);
     
     res.json({
       success: true,
-      agentTypes
+      agentId: result.agentId,
+      response: result.response
     });
   } catch (error) {
-    console.error('Error getting agent types:', error);
+    console.error('Error processing message with routing:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

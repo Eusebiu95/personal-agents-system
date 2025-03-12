@@ -4,7 +4,7 @@ const socketIo = require('socket.io');
 const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
-const { AgentManager } = require('./agents/agentManager');
+const agentManager = require('./agents/sharedAgentManager');
 const cors = require('cors');
 const morgan = require('morgan');
 
@@ -25,17 +25,16 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static(path.join(__dirname, '../frontend/build')));
 app.use(morgan('dev'));
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Create data directory if it doesn't exist
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
-
-// Initialize agent manager
-const agentManager = new AgentManager();
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -52,16 +51,29 @@ io.on('connection', (socket) => {
     try {
       const { agentId, message } = data;
       
-      // If no specific agent is targeted, use the default agent
-      const response = await agentManager.processMessage(agentId || 'default', message);
-      
-      // Send response back to client
-      socket.emit('message', {
-        agentId: agentId || 'default',
-        message: response,
-        timestamp: new Date().toISOString(),
-        fromAgent: true
-      });
+      // If a specific agent is targeted, use it directly
+      if (agentId) {
+        const response = await agentManager.processMessage(agentId, message);
+        
+        // Send response back to client
+        socket.emit('message', {
+          agentId: agentId,
+          message: response,
+          timestamp: new Date().toISOString(),
+          fromAgent: true
+        });
+      } else {
+        // If no specific agent is targeted, use automatic routing
+        const result = await agentManager.processMessageWithRouting(message);
+        
+        // Send response back to client
+        socket.emit('message', {
+          agentId: result.agentId,
+          message: result.response,
+          timestamp: new Date().toISOString(),
+          fromAgent: true
+        });
+      }
     } catch (error) {
       console.error('Error processing message:', error);
       socket.emit('error', { message: 'Error processing your message' });
@@ -131,10 +143,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/gmail', gmailRoutes);
 
+// Serve index.html for the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }
 
