@@ -1,120 +1,58 @@
-# Personal Multi-Agent Chat System
+# Personal Agents System
 
-A powerful multi-agent chat system that allows you to interact with various specialized AI agents to help with different tasks.
+A system of personal agents for various tasks, including email management via Gmail.
 
 ## Features
 
-- **Default Agent**: A general-purpose assistant that can handle various tasks and coordinate with other agents.
-- **Gmail Agent**: An assistant that can help with email-related tasks, such as reading, sending, and searching emails.
-- **More agents coming soon!**
+- **Default Agent**: General purpose assistant for answering questions and providing information.
+- **Gmail Agent**: Manages email-related tasks like reading, sending, and searching emails.
+- **Automatic Agent Routing**: Automatically routes user queries to the most appropriate agent.
 
-## Project Structure
-
-```
-personal-agents/
-├── backend/
-│   ├── agents/
-│   │   ├── agentManager.js
-│   │   ├── baseAgent.js
-│   │   ├── defaultAgent.js
-│   │   └── gmailAgent.js
-│   ├── middleware/
-│   │   └── auth.js
-│   ├── routes/
-│   │   ├── agentRoutes.js
-│   │   ├── authRoutes.js
-│   │   └── gmailRoutes.js
-│   ├── .env.example
-│   ├── package.json
-│   └── server.js
-└── frontend/ (coming soon)
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm or yarn
-
-### Installation
+## Setup
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/personal-agents.git
-   cd personal-agents
+   git clone https://github.com/Eusebiu95/personal-agents-system.git
+   cd personal-agents-system
    ```
 
-2. Install backend dependencies:
+2. Install dependencies:
    ```
    cd backend
    npm install
    ```
 
-3. Create a `.env` file in the backend directory (copy from `.env.example`):
+3. Create a `.env` file in the `backend` directory with the following variables:
    ```
-   cp .env.example .env
-   ```
-
-4. Update the `.env` file with your API keys and secrets.
-
-5. Start the backend server:
-   ```
-   npm run dev
+   OPENAI_API_KEY=your_openai_api_key
+   PORT=3001
    ```
 
-## API Endpoints
+4. Start the server:
+   ```
+   npm start
+   ```
 
-### Authentication
+## Usage
 
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login and get JWT token
-- `GET /api/auth/user` - Get current user data
+- Access the web interface at `http://localhost:3001`
+- Use the API endpoints:
+  - `POST /api/agents/message` - Send a message to be automatically routed to the appropriate agent
+  - `POST /api/agents/:agentId/message` - Send a message to a specific agent
+  - `GET /api/agents` - Get a list of all active agents
 
-### Agents
+## Gmail Agent Setup
 
-- `GET /api/agents` - Get all agents
-- `POST /api/agents` - Create a new agent
-- `GET /api/agents/:agentId` - Get a specific agent
-- `DELETE /api/agents/:agentId` - Delete an agent
-- `POST /api/agents/:agentId/message` - Send a message to an agent
-- `POST /api/agents/:agentId/command` - Execute a command on an agent
-- `GET /api/agents/types` - Get available agent types
+1. Create a project in the [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the Gmail API
+3. Create OAuth 2.0 credentials
+4. Add the credentials to the Gmail agent through the web interface or API
+5. Authenticate with your Google account when prompted
 
-### Gmail Agent
+## Deployment
 
-- `POST /api/gmail` - Create a new Gmail agent
-- `GET /api/gmail` - Get all Gmail agents
-- `GET /api/gmail/:agentId` - Get a specific Gmail agent
-- `DELETE /api/gmail/:agentId` - Delete a Gmail agent
-- `POST /api/gmail/:agentId/message` - Send a message to a Gmail agent
-- `POST /api/gmail/:agentId/command` - Execute a command on a Gmail agent
-- `GET /api/gmail/:agentId/emails/latest` - Get latest emails
-- `GET /api/gmail/:agentId/emails/search` - Search emails
-- `GET /api/gmail/:agentId/emails/:emailId` - Get a specific email
-- `POST /api/gmail/:agentId/emails` - Send an email
-
-## Authentication
-
-The API uses JWT (JSON Web Token) for authentication. To access protected endpoints, include the JWT token in the request header:
-
-```
-x-auth-token: your_jwt_token
-```
-
-## Gmail Authentication
-
-To use the Gmail agent, you need to:
-
-1. Create a Google Cloud project and enable the Gmail API
-2. Create OAuth 2.0 credentials (client ID and client secret)
-3. Set the redirect URI to `http://localhost:3000/api/gmail/auth/callback`
-4. Add these credentials to your `.env` file
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+This project is configured for deployment on Railway.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+ISC 
